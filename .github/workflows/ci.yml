@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      # 每连接跑读协程 + 心跳协程，业务还可能并发写同一连接，关闭路径也有三条 ——
+      # 并发正确性靠 race 检测器兜底。开发机多为 Windows 且 CGO_ENABLED=0
+      # （-race 需要 cgo），所以这一步只在 CI 覆盖。
+      - name: Test
+        run: go test -race ./...
